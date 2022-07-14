@@ -1,0 +1,72 @@
+---
+title: "testR"
+author: "Gavin Fay"
+date: "07/14/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#who has data in spreadsheets?
+library(tidyverse)
+library(readxl)
+library(sf)
+library("rnaturalearth")
+library("rnaturalearthdata")
+#devtools::install_github("ropensci/rnaturalearthhires")
+library("rnaturalearthhires")
+```
+
+```{r}
+world <- ne_countries(scale = "large", returnclass = "sf")
+```
+
+
+```{r}
+fishdata <- read_xlsx("neus_bts.xlsx","bts", na = "NA")
+fishdata
+
+```
+
+
+```{r}
+
+# print our new summarised object
+mean_abundance <- fishdata %>% 
+  group_by(year, season, comname) %>% 
+  summarise(means=mean(abundance, na.rm = TRUE))
+
+## plot the mean abundances over time, by season (color) & species (panels)
+ggplot(mean_abundance, aes(x=year, y=means, color=season)) +  #sets up plot, maps variables to plot aesthetics
+  geom_point() +  #produces the scatterplot
+  facet_wrap(~comname, scales = "free") +   #adds panels (scales argument makes y axes separate by species)
+  geom_smooth(method="loess") +   #adds the smoother/trend line
+  labs(y = "mean number of fish per tow")
+```
+
+
+```{r}
+
+#choose a species
+#map of distribution in spring and fall for 2015
+# add coastline
+
+geofishdata <- fishdata %>% 
+  filter(year==2015) %>% 
+  st_as_sf(coords = c("lon", "lat"), 
+    crs = 4326, agr = "constant")
+
+ggplot(data = world) +
+  geom_sf() +
+  geom_sf(data = geofishdata, 
+         aes(size=abundance), alpha=0.5, col="orange") +
+  facet_wrap(~comname) +
+  coord_sf(ylim = c(40, 44),  xlim = c(-74, -67)) + #, expand = FALSE) +
+  theme_bw()
+
+
+
+```
